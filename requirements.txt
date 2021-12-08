@@ -2,3 +2,4 @@ psycopg2==2.8.6
 fastapi~=0.63.0
 uvicorn~=0.13.4
 pydantic~=1.8.1
+simple-http-server~=0.14.9
