@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- <link href="style.css" rel="stylesheet"> -->
+    <!-- <link href="public/style.css" rel="stylesheet"> -->
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.5.0/fabric.min.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+    <!-- <script src="public/main.js"></script> -->
+
+    <title>Movie Recommendation</title>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <!-- loading layer -->
+    <div id="loading" class="d-none">
+        <div class="d-flex justify-content-center align-items-center min-vh-100 min-vw-100 position-absolute bg-white"
+            style="z-index: 10;">
+            <div class="spinner-grow" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="px-2 py-3 container">
+        <div class="row">
+            <div class="col-12 col-sm-3 border-end">
+                <div class="w-100">
+                    <div class="mb-3">
+                        <input id="userid-input" type="number" class="form-control" placeholder="userid"
+                            aria-label="userid">
+                    </div>
+                </div>
+
+                <h6>Recommend by user ratings</h6>
+                <ul id="recommendation-list">
+                </ul>
+
+                <h6>Movies was rated by user</h6>
+                <ul id="history-list">
+                </ul>
+            </div>
+            <div class="col-12 col-sm-9 d-flex flex-column align-items-center">
+
+                <div class="input-group">
+                    <input id="search-movie" type="text" class="form-control" placeholder="Movie name"
+                        aria-label="Movie name" aria-describedby="button-addon2">
+                    <button class="btn btn-outline-secondary" type="button" id="button-addon2">Search</button>
+                </div>
+
+                <div class="w-100 mt-3">
+                    <div class="w-100" id="search-result">
+                    </div>
+                </div>
+                <hr />
+                <div class="w-100 mt-3 d-none" id="ralate-area">
+                    <h4>Relate</h4>
+                    <div class="w-100" id="relate-result">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script>
+    const historyListHTML = document.querySelector('#history-list');
+    const recommendationListHTML = document.querySelector('#recommendation-list');
+    const searchResultHTML = document.querySelector('#search-result');
+    const relateResultHTML = document.querySelector('#relate-result');
+    const relateAreaHTML = document.querySelector('#ralate-area');
+    let currentSelect = undefined;
+    let currentUserId;
+
+
+    function getHistory(userid) {
+        var settings = {
+            "url": "http://localhost:8081/history/" + userid,
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings).done(function (response) {
+            buildHistoryHTML(response["mess"]);
+        });
+    }
+
+    function getRecommendations(userid) {
+        var settings = {
+            "url": "http://localhost:8081/recommendation/" + userid,
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings).done(function (response) {
+            buildRecommendations(response["mess"]);
+        });
+    }
+
+    function searchMovie(sub) {
+        var settings = {
+            "url": "http://localhost:8081/search/" + sub,
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings).done(function (response) {
+            buildSearchResults(response["mess"]);
+        });
+    }
+
+    function getRelatedMovie(movieid) {
+        var settings = {
+            "url": "http://localhost:8081/relate/" + movieid,
+            "method": "GET",
+            "timeout": 0,
+        };
+
+        $.ajax(settings).done(function (response) {
+            buildRelateResults(response["mess"]);
+        });
+    } 
+
+    function buildHistoryHTML(data) {
+        for (var i = data.length - 1; i >= 0; i--) {
+            var movie = data[i];
+            var movieHTML = `
+                <li>${movie[1]}</li>
+            `;
+
+
+            var movieHTMLDIV = document.createElement("div");
+            movieHTMLDIV.innerHTML = movieHTML;
+            historyListHTML.append(movieHTMLDIV);
+        }
+    }
+
+    function buildRecommendations(data) {
+        for (var i = data.length - 1; i >= 0; i--) {
+            var movie = data[i];
+            var movieHTML = `
+                <li>${movie[0]}</li>
+            `;
+
+
+            var movieHTMLDIV = document.createElement("div");
+            movieHTMLDIV.innerHTML = movieHTML;
+            recommendationListHTML.append(movieHTMLDIV);
+        }
+    }
+
+    function buildSearchResults(data) {
+        const movieData = data[0];
+        const predictRating = data[1];
+        console.log(predictRating);
+
+        for (var i = movieData.length - 1; i >= 0; i--) {
+            var movie = movieData[i];
+            if (predictRating) rate = predictRating[i]
+
+            var movieHTML = `
+                <div class="card card-body mb-1 movie-result" id="movieid-${movie[0]}">
+                    <div class="d-flex justify-content-between align-items-center ">
+                        <div>
+                            <h5 class="card-title">${movie[1]}</h5>
+                        </div>
+                        
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center ">
+                        <div>
+                            <p class="card-text">${movie[2]}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+
+            var movieHTMLDIV = document.createElement("div");
+            movieHTMLDIV.innerHTML = movieHTML;
+            searchResultHTML.append(movieHTMLDIV);
+        }
+
+    }
+
+    function buildRelateResults(data) {
+        console.log(data);
+
+        for (var i = data.length - 1; i >= 0; i--) {
+            var movie = data[i];
+
+            var movieHTML = `
+                <div class="card card-body mb-1 movie-result" >
+                    <div class="d-flex justify-content-between align-items-center ">
+                        <div>
+                            <h5 class="card-title">${movie[0]}</h5>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center ">
+                        <div>
+                            <p class="card-text">${movie[1]}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+
+            var movieHTMLDIV = document.createElement("div");
+            movieHTMLDIV.innerHTML = movieHTML;
+            relateResultHTML.append(movieHTMLDIV);
+        }
+
+    }
+
+    $(document).ready(function () {
+        $('#userid-input').on('change', function () {
+            currentUserId = this.value;
+
+            historyListHTML.innerHTML = "";
+            recommendationListHTML.innerHTML = "";
+
+            if (currentUserId) {
+                getHistory(currentUserId);
+                getRecommendations(currentUserId);
+            }
+        })
+
+        $('#search-movie').on('change', function () {
+            const title = this.value;
+
+            searchResultHTML.innerHTML = "";
+            relateResultHTML.innerHTML = "";
+            if (title)
+                searchMovie(title);
+            else
+                relateAreaHTML.classList.add('d-none');
+        })
+
+        $(document).on('click', '.movie-result', function (event) {
+            if (currentSelect)
+            currentSelect.style.borderColor = "rgba(0,0,0,.125)";
+            
+
+            currentSelect = event.currentTarget;
+            currentSelect.style.borderColor = "green";
+            console.log(currentSelect.id.split('-')[1]);
+            relateResultHTML.innerHTML = "";
+            relateAreaHTML.classList.remove('d-none');
+            getRelatedMovie(currentSelect.id.split('-')[1]);
+        })
+    })
+</script>
+
+</html>
